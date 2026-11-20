@@ -14,12 +14,24 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 非模块台账：快照对照清单、待复核清单等跨模块证据，不计入业务模块列表。
+        self._registries: dict[str, list[dict[str, Any]]] = {}
+        self._counters: dict[str, int] = {}
 
     def module_names(self) -> list[str]:
         return sorted(self._tables)
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
+
+    def registry(self, name: str) -> list[dict[str, Any]]:
+        """跨模块证据台账（对照清单、质检报告等），不出现在业务模块概览里。"""
+        return self._registries.setdefault(name, [])
+
+    def next_counter(self, name: str) -> int:
+        """批次号等顺序编号发生器。"""
+        self._counters[name] = self._counters.get(name, 0) + 1
+        return self._counters[name]
 
     def find(self, module: str, entry_id: int) -> dict[str, Any] | None:
         for row in self.rows(module):
